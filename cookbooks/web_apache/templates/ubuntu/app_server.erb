@@ -11,6 +11,7 @@
 
 <VirtualHost *:<%= @params[:vhost_port] %>>
   ServerName <%= @params[:server_name] %>
+  DirectoryIndex index.cfm index.php
   DocumentRoot <%= @params[:docroot] %>/www
   <DirectoryMatch  /\.git/|/\.svn/ >
     Deny from all
