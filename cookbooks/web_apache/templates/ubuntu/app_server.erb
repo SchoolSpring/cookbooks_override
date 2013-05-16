@@ -73,15 +73,20 @@
   RewriteCond %{REQUEST_URI} .*/ga.js$
   RewriteRule (.*) %{HTTP:X-Http-Protocol}://www.google-analytics.com/ga.js [R=301,L]
 
-
   RewriteMap  lc int:tolower
   RewriteCond %{IS_SUBREQ} !true
   RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-f
   RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-d
-  RewriteCond %{REQUEST_URI} !^/blog.*
   RewriteCond %{REQUEST_URI} !^/tasks.*
   RewriteCond %{REQUEST_URI} !^/CFFileServlet.*
   RewriteCond %{REQUEST_URI} [A-Z]
   RewriteRule (.*) ${lc:$1} [R=301,L]
+
+  #RewriteCond %{IS_SUBREQ} false
+  ##RewriteCond %{REQUEST_URI} !^/tasks.*
+  ##RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-f
+  ##RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-d
+  ##RewriteCond %{REQUEST_URI} !^/CFFileServlet.*
+  ##RewriteRule ^(.*)$ /404.cfm?$1 [PT,L]
 
 </VirtualHost>
