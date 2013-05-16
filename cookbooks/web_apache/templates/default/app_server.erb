@@ -1,10 +1,10 @@
-# 
-# Cookbook Name:: web_apache
+#
+# Cookbook Name:: web_apache ds
 #
 # Copyright RightScale, Inc. All rights reserved.  All access and use subject to the
 # RightScale Terms of Service available at http://www.rightscale.com/terms.php and,
 # if applicable, other agreements such as a RightScale Master Subscription Agreement.
-# 
+#
 # Managed by RightScale
 # DO NOT EDIT BY HAND
 #
@@ -16,12 +16,24 @@
     Deny from all
   </DirectoryMatch>
 
+  DirectoryIndex index.cfm index.php
+  <Directory "<%= @params[:docroot] %>/symfony/lib/vendor/symfony/data/web/sf">
+    AllowOverride All
+    Allow from All
+  </Directory>
+  Alias /sf <%= @params[:docroot] %>/symfony/lib/vendor/symfony/data/web/sf
+
   <Directory <%= @params[:docroot] %>/www>
-    Options FollowSymLinks Indexes MultiViews
+    Options Indexes FollowSymLinks MultiViews
     AllowOverride <%= @params[:allow_override] %>
     Order allow,deny
     Allow from all
   </Directory>
+
+  # Setup the logs in the appropriate directory
+  CustomLog <%= node[:apache][:log_dir] %>/access_log combined
+  ErrorLog  <%= node[:apache][:log_dir] %>/error_log
+  LogLevel warn
 
   RewriteEngine On
   # Uncomment for rewrite debugging
@@ -37,16 +49,39 @@
   RewriteCond %{REMOTE_ADDR} ^(127.0.0.1)
   RewriteRule ^(/server-status) $1 [H=server-status,L]
 
-  # Setup the logs in the appropriate directory
-  CustomLog <%= node[:apache][:log_dir] %>/access_log combined
-  ErrorLog  <%= node[:apache][:log_dir] %>/error_log
+  # Next hop is HaProxy
+  RewriteRule ^/(.*)$ http://127.0.0.1:85%{REQUEST_URI} [P,QSA,L]
 
-  LogLevel warn
+  # Serve any existing local files directly (except actionable ones)
+  RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_FILENAME} -f
+  RewriteCond %{REQUEST_FILENAME} !\.php|\.jsp|\.do|\.action$ [NC]
+  RewriteRule ^/(.*)$ /$1 [QSA,L]
+
+  # Special rule to forward "/" directly to haproxy
+  RewriteCond %{DOCUMENT_ROOT}/$ -d
+  RewriteRule ^/(.*)$ http://127.0.0.1:85%{REQUEST_URI} [P,QSA,L]
+
+  RewriteCond %{DOCUMENT_ROOT}/%{REQUEST_FILENAME} -d
+  RewriteRule ^/(.*)$ /$1 [QSA,L]
 
   # Deflate
   AddOutputFilterByType DEFLATE text/html text/plain text/xml application/xml application/xhtml+xml text/javascript text/css application/x-javascript
   BrowserMatch ^Mozilla/4 gzip-only-text/html
   BrowserMatch ^Mozilla/4\.0[678] no-gzip
   BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+
+  RewriteCond %{REQUEST_URI} .*/ga.js$
+  RewriteRule (.*) %{HTTP:X-Http-Protocol}://www.google-analytics.com/ga.js [R=301,L]
+
+
+  RewriteMap  lc int:tolower
+  RewriteCond %{IS_SUBREQ} !true
+  RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-f
+  RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/blog.*
+  RewriteCond %{REQUEST_URI} !^/tasks.*
+  RewriteCond %{REQUEST_URI} !^/CFFileServlet.*
+  RewriteCond %{REQUEST_URI} [A-Z]
+  RewriteRule (.*) ${lc:$1} [R=301,L]
 
 </VirtualHost>
