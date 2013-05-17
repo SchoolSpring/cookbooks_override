@@ -1,5 +1,5 @@
 #
-# Cookbook Name:: web_apache
+# Cookbook Name:: web_apache pu
 #
 # Copyright RightScale, Inc. All rights reserved.  All access and use subject to the
 # RightScale Terms of Service available at http://www.rightscale.com/terms.php and,
@@ -16,6 +16,12 @@
   <DirectoryMatch  /\.git/|/\.svn/ >
     Deny from all
   </DirectoryMatch>
+
+  <Directory "<%= @params[:docroot] %>/symfony/lib/vendor/symfony/data/web/sf">
+    AllowOverride All
+    Allow from All
+  </Directory>
+  Alias /sf <%= @params[:docroot] %>/symfony/lib/vendor/symfony/data/web/sf
 
   <Directory <%= @params[:docroot] %>/www>
     Options FollowSymLinks
@@ -48,5 +54,18 @@
   BrowserMatch ^Mozilla/4 gzip-only-text/html
   BrowserMatch ^Mozilla/4\.0[678] no-gzip
   BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
+
+  RewriteCond %{REQUEST_URI} .*/ga.js$
+  RewriteRule (.*) %{HTTP:X-Http-Protocol}://www.google-analytics.com/ga.js [R=301,L]
+
+  RewriteMap  lc int:tolower
+  RewriteCond %{IS_SUBREQ} !true
+  RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-f
+  RewriteCond %{DOCUMENT_ROOT}%{SCRIPT_FILENAME} !-d
+  RewriteCond %{REQUEST_URI} !^/tasks.*
+  RewriteCond %{REQUEST_URI} !^/CFFileServlet.*
+  RewriteCond %{REQUEST_URI} [A-Z]
+  RewriteRule (.*) ${lc:$1} [R=301,L]
+
 
 </VirtualHost>
